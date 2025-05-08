@@ -10,33 +10,34 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mernmobileapp', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connection established successfully'))
-.catch(err => console.error('MongoDB connection error:', err));
-
-// Routes will be added here
-
 const port = process.env.PORT || 5000;
 
-// Improved server startup with error handling
 const startServer = async () => {
   try {
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mernmobileapp', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    console.log('MongoDB connection established successfully');
+
     app.listen(port, () => {
       console.log(`Server is running on port: ${port}`);
+    }).on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`\nError: Port ${port} is already in use.`);
+        console.error('\nTry these solutions:');
+        console.error(`1. Kill the process using port ${port}:`);
+        console.error(`   - Run: lsof -i :${port}`);
+        console.error('   - Note the PID and run: kill -9 <PID>');
+        console.error('\n2. Or use a different port:');
+        console.error('   - Set a different PORT in .env file');
+        console.error('   - Or run with a different port: PORT=5001 npm run dev\n');
+        process.exit(1);
+      }
+      throw error;
     });
   } catch (error) {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`Port ${port} is already in use. Please try these steps:`);
-      console.error('1. Stop any other servers that might be running');
-      console.error(`2. Run: lsof -i :${port} to see which process is using the port`);
-      console.error(`3. Kill the process using: kill -9 <PID>`);
-      console.error('4. Or try using a different port by setting PORT in .env file');
-    } else {
-      console.error('Error starting server:', error);
-    }
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
